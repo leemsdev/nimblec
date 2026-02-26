@@ -1,0 +1,2 @@
+- decided 1 line per statement
+- statements must begin with (ident, if, for, fn_call)
