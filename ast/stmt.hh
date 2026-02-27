@@ -6,25 +6,45 @@
 #include <ostream>
 #include <vector>
 
-namespace statements {
-	enum class stmt_type {
-		builtin_print,
-	};
+namespace statements
+{
+        enum class stmt_type
+        {
+                builtin_print,
+                assignment,
+        };
 
-	struct stmt {
-		stmt_type T;
-		expressions::expr expr;
-		const char * readable;
+        struct stmt
+        {
+                stmt_type T;
+                expressions::expr e;
 
-		void print() {
-			std::cout << "STMT: " << readable << std::endl;
-			std::cout << "\t";
-			expr.print();
-			std::cout << std::endl;
-		}
-	};
+                std::string type_to_str()
+                {
+                        switch (T)
+                        {
 
-	struct stmt_container {
-		std::vector<stmt> statements;
-	};
-}
+                                case stmt_type::builtin_print:
+                                        return "builtin_print_fn";
+                                case stmt_type::assignment:
+                                        return "assignment";
+                                        break;
+                        }
+                }
+
+                void print()
+                {
+                        std::cout << "stmt: " << type_to_str() << std::endl;
+                }
+        };
+
+        struct stmt_container
+        {
+                std::vector<stmt> statements;
+
+                void add(stmt s)
+                {
+                        statements.push_back(s);
+                }
+        };
+} // namespace statements
