@@ -1,4 +1,6 @@
 #include "codegen.hh"
+#include "codegen_utils.hh"
+#include <cstdarg>
 #include <cstdlib>
 #include <iostream>
 #include <stack>
@@ -10,30 +12,19 @@ void write_print_stmt(codegen::generator *g, const statements::stmt *s)
 
         std::string value = g->src->substr_from_token(e.tok);
 
-        g->write("printf(\"");
-
         switch (e.tok->type)
         {
-                std::cout << "current codegen token: " << g->src->substr_from_token(e.tok) << std::endl;
-
                 case tokens::token_type::string:
-                {
-                        for (char c : value)
-                        {
-                                g->write(c);
-                        }
-
-                        g->write("\\n\");");
-
+                        g->write(codegen_utils::c_printf("\"" + value + "\"", "%s"));
                         break;
-                }
                 case tokens::token_type::ident:
                 {
                         auto maybe_ident = g->try_get_ident_in_scope(value);
 
                         if (!maybe_ident.has_value())
                         {
-                                g->p->rep_err("Undeclared identifier " + value, e.tok->line, e.tok->start, e.tok->end);
+                                g->p->rep_err("Undeclared identifier " + value, e.tok->line,
+                                              e.tok->start, e.tok->end);
                                 return;
                         }
 
@@ -42,19 +33,11 @@ void write_print_stmt(codegen::generator *g, const statements::stmt *s)
                         switch (i.T)
                         {
                                 case codegen::identifier_type::number:
-                                {
-                                        g->write("%d\\n\", ");
-                                        g->write(i.name);
-                                        g->write(");");
+                                        g->write(codegen_utils::c_printf(i.name, "%d"));
                                         break;
-                                }
                                 case codegen::identifier_type::string:
-                                {
-                                        g->write("%s\\n\", ");
-                                        g->write(i.name);
-                                        g->write(");");
+                                        g->write(codegen_utils::c_printf(i.name, "%s"));
                                         break;
-                                }
                                 default:
                                         break;
                         }

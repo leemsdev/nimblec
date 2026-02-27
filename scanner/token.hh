@@ -7,6 +7,10 @@
 
 namespace tokens
 {
+        using std::optional;
+        using std::string;
+        using std::vector;
+
         enum class token_type
         {
                 keyword_print,
@@ -40,9 +44,9 @@ namespace tokens
         struct token_iter
         {
                 size_t cursor;
-                std::vector<token> *tokens;
+                vector<token> *tokens;
 
-                inline static token_iter make(std::vector<token> *tokens)
+                inline static token_iter make(vector<token> *tokens)
                 {
                         return {
                             .cursor = 0,
@@ -60,7 +64,7 @@ namespace tokens
                         return cursor >= tokens->size();
                 }
 
-                std::optional<token *> peek() const
+                optional<token *> peek() const
                 {
                         if (cursor + 1 > tokens->size())
                         {
@@ -70,7 +74,7 @@ namespace tokens
                         return &tokens->at(cursor + 1);
                 }
 
-                std::optional<tokens::token *> current()
+                optional<token *> current()
                 {
                         if (done())
                         {
@@ -81,30 +85,32 @@ namespace tokens
                 }
         };
 
-        inline static std::string type_to_str(token_type t)
+        inline static string type_to_str(token_type t)
         {
+                using tt = tokens::token_type;
+
                 switch (t)
                 {
-                        case token_type::keyword_print:
+                        case tt::keyword_print:
                                 return "print";
-                        case token_type::string:
+                        case tt::string:
                                 return "string";
-                        case token_type::ident:
+                        case tt::ident:
                                 return "identifier";
-                        case token_type::unknown:
+                        case tt::unknown:
                                 return "unknown";
-                        case token_type::eof:
+                        case tt::eof:
                                 return "eof";
-                        case token_type::newline:
+                        case tt::newline:
                                 return "newline";
-                        case token_type::colon_eq:
+                        case tt::colon_eq:
                                 return "colon_equal";
-                        case token_type::number:
+                        case tt::number:
                                 return "number";
                 }
         }
 
-        inline static std::optional<tokens::token_type> try_match_keyword(const std::string *src, token t)
+        inline static optional<token_type> try_match_keyword(const string *src, token t)
         {
                 if (src->substr(t.start, t.end) == "print")
                 {
