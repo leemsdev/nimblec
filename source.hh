@@ -1,16 +1,15 @@
 #pragma once
 
+#include <cstddef>
 #include <string>
-
-#include "./scanner/token.hh"
 
 struct source
 {
         std::string raw;
 
-        std::string substr_from_token(const tokens::token *t) const
+        std::string substr(size_t start, size_t end) const
         {
-                return raw.substr(t->start, t->end);
+                return raw.substr(start, end);
         }
 
         size_t len()

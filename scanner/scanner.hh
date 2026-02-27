@@ -25,7 +25,11 @@ namespace scanning
 
                 static inline scanner make(source *src)
                 {
-                        return {.cursor = 0, .offset = 0, .line = 0, .tokens = std::vector<tokens::token>{}, .src = src};
+                        return {.cursor = 0,
+                                .offset = 0,
+                                .line = 0,
+                                .tokens = std::vector<tokens::token>{},
+                                .src = src};
                 }
 
                 inline bool done()
@@ -82,9 +86,11 @@ namespace scanning
                 {
                         for (tokens::token &t : tokens)
                         {
-                                std::string token_to_src = src->substr_from_token(&t);
+                                std::string token_s = src->substr(t.start, t.end);
+                                std::string typestr = tokens::type_to_str(t.type);
 
-                                std::cout << "Token " << tokens::type_to_str(t.type) << " - " << token_to_src << std::endl;
+                                std::cout << "Token{" << typestr << " - " << token_s << "}"
+                                          << std::endl;
                         }
                 }
         };
