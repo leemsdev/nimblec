@@ -1,49 +1,94 @@
 #pragma once
 
-#include <iostream>
-#include <vector>
-#include "../token.hh"
+#include "../scanner/token.hh"
 #include "expr.hh"
 #include "stmt.hh"
+#include <iostream>
+#include <vector>
 
-namespace ast {
-struct program_err {
-	size_t line;
-	std::string msg;
-};
+#include "../source.hh"
 
-struct program {
-	statements::stmt_container statements_container;
-	expressions::expressions_container expressions_container;
+namespace ast
+{
+        struct program_err
+        {
+                size_t line;
+                std::string msg;
+                size_t start;
+                size_t end;
+        };
 
-	std::vector<program_err> errs;
+        struct program
+        {
+                statements::stmt_container statements_container;
+                expressions::expressions_container expressions_container;
 
-	void rep_err(const char *msg, size_t line) {
-		errs.push_back({
-			.line = line,
-			.msg = std::string{msg}
-		});
-	}
+                std::vector<program_err> errs;
 
-	bool ok() {
-		return errs.empty();
-	}
+                const source *src;
 
-	void print_errs() {
-		std::cout << "Program failed to compile" << std::endl;
-		for (program_err &e: errs) {
-			std::cout << "\t[line " << e.line << "] " << e.msg << std::endl;
-		}
-	}
+                void rep_err(std::string msg, size_t line, size_t start, size_t end)
+                {
+                        errs.push_back({
+                            .line = line,
+                            .msg = msg,
+                            .start = start,
+                            .end = end,
+                        });
+                }
 
-	void add_stmt(statements::stmt_type t, expressions::expr e, const char * readable) {
-			statements_container.statements.push_back({
-				.T =t,
-				.expr = e,
-				.readable = readable
-			});
-	}
-};
+                bool ok()
+                {
+                        return errs.empty();
+                }
 
-program parse_tree(tokens::token_iter * ti);
-}
+                void print_errs()
+                {
+                        std::cout << "Program failed to compile" << std::endl;
+                        for (program_err &e : errs)
+                        {
+                                std::cout << "\t[line " << e.line << " (" << e.start << "," << e.end << ")] " << e.msg << std::endl;
+                        }
+                }
+
+                void print_stmts()
+                {
+                        std::cout << "Printing statements: " << std::endl;
+
+                        for (statements::stmt &s : statements_container.statements)
+                        {
+                                s.print();
+
+                                switch (s.e.type)
+                                {
+                                        case expressions::expr_type::literal:
+                                        {
+                                                expressions::expr_literal e = expressions_container.get_literal(s.e);
+
+                                                std::cout << "\tLiteral expr: " << src->substr_from_token(e.tok) << std::endl;
+                                                break;
+                                        }
+                                        case expressions::expr_type::unary:
+                                                break;
+                                        case expressions::expr_type::binary:
+                                                break;
+                                        case expressions::expr_type::assign:
+                                        {
+                                                expressions::expr_assign e = expressions_container.get_assign(s.e);
+
+                                                std::cout << "\tAssignment: " << src->substr_from_token(e.ident) << " = " << src->substr_from_token(e.value)
+                                                          << std::endl;
+                                                break;
+                                        }
+                                }
+                        }
+                }
+
+                void add_stmt(statements::stmt_type t, expressions::expr e)
+                {
+                        statements_container.add({.T = t, .e = e});
+                }
+        };
+
+        void parse_tree(program *p, tokens::token_iter *ti);
+} // namespace ast

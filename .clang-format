@@ -1,0 +1,17 @@
+BasedOnStyle: LLVM
+
+# tabs / indentation
+UseTab: Never
+IndentWidth: 8
+TabWidth: 8
+NamespaceIndentation: All
+
+# braces on new lines (Allman style)
+BreakBeforeBraces: Allman
+
+# optional but recommended for consistency
+AllowShortFunctionsOnASingleLine: false
+AllowShortIfStatementsOnASingleLine: false
+
+ColumnLimit: 160
+IndentCaseLabels: true

@@ -1,85 +1,136 @@
 #include "ast.hh"
+#include "../scanner/token.hh"
 #include "expr.hh"
 #include "stmt.hh"
-#include "../token.hh"
+#include <iostream>
 #include <optional>
+#include <ostream>
 
+using ast::program;
 using tokens::token;
 using tokens::token_iter;
 using tokens::token_type;
-using ast::program;
 
-std::optional<token*> try_match_next(token_iter * ti, std::initializer_list<token_type> expected) {
-	auto maybe_next = ti->peek();
+std::optional<token *> try_match_next(token_iter *ti, std::initializer_list<token_type> expected)
+{
+        auto maybe_next = ti->peek();
 
-	if (!maybe_next.has_value()) {
-		return std::nullopt;
-	}
+        if (!maybe_next.has_value())
+        {
+                return std::nullopt;
+        }
 
-	token * next = maybe_next.value();	
+        token *next = maybe_next.value();
 
-	for (auto e : expected) {
-		if(e == next->type) {
-			return next;
-		}
-	}
+        for (auto e : expected)
+        {
+                if (e == next->type)
+                {
+                        return next;
+                }
+        }
 
-	return std::nullopt;
+        return std::nullopt;
 }
 
-void parse_stmt(program * p, token_iter * ti) {
-	token * tok = ti->current().value();	
+void parse_stmt(program *p, token_iter *ti)
+{
+        token *tok = ti->current().value();
 
-	if (tok->type == token_type::keyword_print) {
-		auto maybe_next = try_match_next(ti, {token_type::string});	
+        if (tok->type == token_type::keyword_print)
+        {
+                auto maybe_next = try_match_next(ti, {token_type::string, token_type::ident});
 
-		if (!maybe_next.has_value()) {
-			p->rep_err("Print statement must be following by a string value", tok->line);
-			return;
-		}
+                if (!maybe_next.has_value())
+                {
+                        p->rep_err("Print statement must be following by a string or identifier value", tok->line, tok->start, tok->end);
+                        return;
+                }
 
-		// create an expression
-		auto e = p->expressions_container.register_literal(
-			expressions::expr_literal_type::string,
-			maybe_next.value(),
-			"literal expr" 
-		);
+                // create an expression
+                auto e = p->expressions_container.register_literal(expressions::expr_literal_type::string, maybe_next.value(), "literal expr");
 
-		p->add_stmt(statements::stmt_type::builtin_print, e, "printfn")	;
+                p->add_stmt(statements::stmt_type::builtin_print, e);
 
-		// advance past next token cos we already dealt w it
-		ti->advance();
-	}
+                // advance past next token cos we already dealt w it
+                ti->advance();
+                ti->advance();
+        }
+
+        if (tok->type == token_type::ident)
+        {
+                auto maybe_coloneq = try_match_next(ti, {token_type::colon_eq});
+
+                if (!maybe_coloneq.has_value())
+                {
+                        p->rep_err("Invalid identifier usage", tok->line, tok->start, tok->end);
+                        return;
+                }
+
+                // we are an assignment
+                ti->advance();
+
+                auto maybe_value = try_match_next(ti, {token_type::number, token_type::string});
+
+                if (!maybe_value.has_value())
+                {
+                        p->rep_err("Invalid assignment", tok->line, tok->start, tok->end);
+                        return;
+                }
+
+                auto e = p->expressions_container.register_assign(tok, maybe_value.value());
+
+                p->add_stmt(statements::stmt_type::assignment, e);
+
+                ti->advance();
+                ti->advance();
+        }
 }
 
-void parse_token(program * p, token_iter * ti) {
-	token * tok = ti->current().value();
+void parse_token(program *p, token_iter *ti)
+{
+        token *tok = ti->current().value();
 
-	switch(tok->type) {
-		case tokens::token_type::keyword_print: parse_stmt(p, ti); break;
-		case tokens::token_type::string: p->rep_err("Invalid string literal", tok->line); break;
-		case tokens::token_type::ident: break;
-		case tokens::token_type::unknown: p->rep_err("Invalid syntax", tok->line); break;
-		case tokens::token_type::newline: ti->advance(); break;
-		case tokens::token_type::eof: break;
-	}
+        std::cout << "Current token: " << tokens::type_to_str(tok->type) << " value: " << p->src->substr_from_token(tok) << std::endl;
 
-	ti->advance();
+        switch (tok->type)
+        {
+                case tokens::token_type::keyword_print:
+                        parse_stmt(p, ti);
+                        break;
+                case tokens::token_type::string:
+                        p->rep_err("Invalid string literal", tok->line, tok->start, tok->end);
+                        break;
+                case tokens::token_type::ident:
+                        parse_stmt(p, ti);
+                        break;
+                case tokens::token_type::unknown:
+                        p->rep_err("Invalid syntax", tok->line, tok->start, tok->end);
+                        break;
+                case tokens::token_type::newline:
+                        ti->advance();
+                        break;
+                case tokens::token_type::eof:
+                        break;
+                case tokens::token_type::number:
+                        p->rep_err("Invalid number ", tok->line, tok->start, tok->end);
+                        break;
+                case tokens::token_type::colon_eq:
+                        p->rep_err("Invalid syntax ", tok->line, tok->start, tok->end);
+                        break;
+        }
 }
 
+void ast::parse_tree(program *p, token_iter *ti)
+{
+        while (!ti->done())
+        {
+                parse_token(p, ti);
+        }
 
-program ast::parse_tree(token_iter * ti) {
-	program p;
-
-	while (!ti->done()) {
-		parse_token(&p, ti);
-	}
-
-	if (!p.ok()) {
-		p.print_errs();
-		exit(-1);
-	}
-
-	return p;
+        if (!p->ok())
+        {
+                p->print_errs();
+                exit(-1);
+        }
 }
-
