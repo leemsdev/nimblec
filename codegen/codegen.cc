@@ -8,9 +8,9 @@
 
 void write_print_stmt(codegen::generator *g, const statements::stmt *s)
 {
-        expressions::expr_literal e = g->p->expressions_container.get_literal(s->e);
+        expressions::expr_literal e = g->p->expressions_container.get_literal(&s->e);
 
-        std::string value = g->src->substr_from_token(e.tok);
+        std::string value = g->src->substr(e.tok->start, e.tok->end);
 
         switch (e.tok->type)
         {
@@ -44,7 +44,6 @@ void write_print_stmt(codegen::generator *g, const statements::stmt *s)
 
                         break;
                 }
-
                 default:
                 {
                         g->p->rep_err("Invalid syntax", e.tok->line, e.tok->start, e.tok->end);
@@ -56,10 +55,10 @@ void write_print_stmt(codegen::generator *g, const statements::stmt *s)
 
 void write_assignment(codegen::generator *g, statements::stmt *s)
 {
-        expressions::expr_assign e = g->p->expressions_container.get_assign(s->e);
+        expressions::expr_assign e = g->p->expressions_container.get_assign(&s->e);
 
-        std::string ident = g->src->substr_from_token(e.ident);
-        std::string value = g->src->substr_from_token(e.value);
+        std::string ident = g->src->substr(e.ident->start, e.ident->end);
+        std::string value = g->src->substr(e.value->start, e.value->end);
 
         if (e.value->type == tokens::token_type::number)
         {
@@ -88,8 +87,27 @@ void write_assignment(codegen::generator *g, statements::stmt *s)
         }
 }
 
+void write_if_stmt(codegen::generator *g, statements::stmt *s)
+{
+        printf("trying to get comp expr: \n");
+        expressions::expr_compare e = g->p->expressions_container.get_comparison(&s->e);
+
+        printf("got comp expr: \n");
+
+        std::string left = g->src->substr(e.left->start, e.left->end);
+        std::string right = g->src->substr(e.right->start, e.right->end);
+
+        g->write("if (");
+        g->write(left);
+        g->write(" == ");
+        g->write(right);
+        g->write(")");
+}
+
 std::string codegen::gen(const source *source, ast::program *p)
 {
+        std::cout << "Beginning codegen..." << std::endl;
+
         generator g = {std::stack<scope>(), std::string(), p, source};
 
         g.output.append("#include \"stdio.h\"\n");
@@ -97,10 +115,10 @@ std::string codegen::gen(const source *source, ast::program *p)
 
         g.enter_scope();
 
-        std::cout << "Beginning codegen..." << std::endl;
-
         for (statements::stmt &s : p->statements_container.statements)
         {
+                std::cout << "Generating code for " << std::endl;
+                p->print_stmt(&s);
                 switch (s.T)
                 {
                         case statements::stmt_type::builtin_print:
@@ -109,9 +127,19 @@ std::string codegen::gen(const source *source, ast::program *p)
                         case statements::stmt_type::assignment:
                                 write_assignment(&g, &s);
                                 break;
+                        case statements::stmt_type::if_stmt:
+                                write_if_stmt(&g, &s);
+                                break;
+                        case statements::stmt_type::open_block_stmt:
+                                g.write("{");
+                                break;
+                        case statements::stmt_type::close_block_stmt:
+                                g.write("}");
+                                break;
                 }
 
                 g.newline();
+                std::cout << "========" << std::endl;
         }
 
         g.write("\nreturn 0;\n}\n");
@@ -119,7 +147,6 @@ std::string codegen::gen(const source *source, ast::program *p)
         if (!g.p->ok())
         {
                 p->print_errs();
-                exit(1);
         }
 
         return g.output;

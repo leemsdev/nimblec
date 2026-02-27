@@ -12,6 +12,9 @@ namespace statements
         {
                 builtin_print,
                 assignment,
+                if_stmt,
+                open_block_stmt,
+                close_block_stmt,
         };
 
         struct stmt
@@ -28,7 +31,12 @@ namespace statements
                                         return "builtin_print_fn";
                                 case stmt_type::assignment:
                                         return "assignment";
-                                        break;
+                                case stmt_type::if_stmt:
+                                        return "if";
+                                case stmt_type::open_block_stmt:
+                                        return "open block";
+                                case stmt_type::close_block_stmt:
+                                        return "close block";
                         }
                 }
 
@@ -40,6 +48,7 @@ namespace statements
 
         struct stmt_container
         {
+                // top-level statements. all are written.
                 std::vector<stmt> statements;
 
                 void add(stmt s)

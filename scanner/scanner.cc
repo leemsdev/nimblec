@@ -1,5 +1,7 @@
 #include "scanner.hh"
 #include <cctype>
+#include <iostream>
+#include <ostream>
 
 #include "token.hh"
 
@@ -7,6 +9,9 @@ using scanning::scanner;
 
 void save_token(scanner *s, tokens::token_type type)
 {
+        std::cout << "Saving token: " << tokens::type_to_str(type)
+                  << " val: " << s->src->substr(s->cursor, s->offset) << std::endl;
+
         tokens::token t = tokens::token::make(type, s->cursor, s->offset - s->cursor, s->line);
 
         s->tokens.push_back(t);
@@ -40,7 +45,7 @@ void parse_ident(scanner *s)
         // check if value of last identifier matches a keyword
         tokens::token t = s->tokens.back();
 
-        auto maybe_keyword = tokens::try_match_keyword(&s->src->raw, t);
+        auto maybe_keyword = tokens::try_match_keyword(s->src, t);
 
         if (maybe_keyword.has_value())
         {
@@ -88,9 +93,28 @@ void scanning::scan_token(scanner *s)
                 case EOF:
                         s->skip();
                         break;
+                case '}':
+                        save_token(s, tokens::token_type::right_brace);
+                        s->advance();
+                        break;
+
+                case '{':
+                        save_token(s, tokens::token_type::left_brace);
+                        s->advance();
+                        break;
                 case '\n':
                         parse_newline(s);
                         break;
+                case '=':
+                        if (s->next() == '=')
+                        {
+                                s->advance();
+                                save_token(s, tokens::token_type::double_eq);
+                                s->advance();
+                                break;
+                        }
+                        save_token(s, tokens::token_type::eq);
+                        s->advance();
                 case ':':
                 {
                         if (match_next(s, '=') == 1)
@@ -108,7 +132,6 @@ void scanning::scan_token(scanner *s)
                 }
                 default:
                 {
-
                         if (isnumber(s->current()))
                         {
                                 parse_number(s);

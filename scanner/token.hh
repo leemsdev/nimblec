@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include "../source.hh"
+
 namespace tokens
 {
         using std::optional;
@@ -14,13 +16,19 @@ namespace tokens
         enum class token_type
         {
                 keyword_print,
+                keyword_then,
+                keyword_if,
                 string,
                 ident,
                 unknown,
                 newline,
                 colon_eq,
+                double_eq,
                 number,
+                left_brace,
+                right_brace,
                 eof,
+                eq,
         };
 
         struct token
@@ -107,14 +115,38 @@ namespace tokens
                                 return "colon_equal";
                         case tt::number:
                                 return "number";
+                        case tt::keyword_if:
+                                return "if";
+                        case tt::keyword_then:
+                                return "then";
+                        case tt::double_eq:
+                                return "double_eq";
+                        case token_type::left_brace:
+                                return "left_brace";
+                        case token_type::right_brace:
+                                return "right_brace";
+                                break;
+                        case token_type::eq:
+                                return "eq";
+                                break;
                 }
         }
 
-        inline static optional<token_type> try_match_keyword(const string *src, token t)
+        inline static optional<token_type> try_match_keyword(source *src, token t)
         {
                 if (src->substr(t.start, t.end) == "print")
                 {
                         return token_type::keyword_print;
+                }
+
+                if (src->substr(t.start, t.end) == "if")
+                {
+                        return token_type::keyword_if;
+                }
+
+                if (src->substr(t.start, t.end) == "then")
+                {
+                        return token_type::keyword_then;
                 }
 
                 return std::nullopt;

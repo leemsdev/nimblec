@@ -1,2 +1,45 @@
 - decided 1 line per statement
 - statements must begin with (ident, if, for, fn_call)
+
+im thinking in codegen we should be able to just call a function which returns the allowed next tokens AND the error to
+print if it doesn't match. do that after if statement. and then there's just a lookup. like:
+
+if -> lookup if_rules -> return ident -> lookup ident_rules -> return == -> lookup === rules -> return ident
+
+if we fail at any stage we can return the error that should be printed w/ the exact line (literally the source printed with a ^
+pointing to the error loc) and if we succeed then we return the literal value of that part so we can construct it
+
+maybe even each stage of the process can take in the output and do it's own appending onto the output, meaning each rules handler is
+responsible for writing its output
+
+tho this would mean that the code generation would be done WHILE creating the ast (which isnt even rly an ast here so wtf am i doing)
+
+wait scratch the above. we do a chain. if it fails then we get the err back instead. this is a good idea. 
+if it passes we get back a vector of all the relevant tokens
+so it's one top level call, then
+it goes through a chain of functions and appends to the expr or fails at some stage. but each step advances the 
+token_iter. 
+
+this could be a builder struct too. so you construct grammar like:
+
+```
+vec<token> then_toks = parse_grammar()
+	.expect({ident})
+	.expect({eqeq})
+	.expect({bool, ident, number, string})
+	.expect({then})
+	.expect({keyword_print})
+	.validate();
+```
+
+and we could even make this composable, so you can have nested grammar trees.
+this is good!! this is like just using BNF but in code.
+it will make constructing grammar way faster.
+(tho this is just becoming nimble now lol)
+
+
+im also using statements wrong. i cant afford to have just 1 statement type. i need to add more.
+fix this once you've got it working cos it's bad. we need like if_stmt, fn_stmt, for_stmt etc. and then
+each of those statements can have child expressions.
+
+so like, just statement container. expressions can be attached to statements by value.

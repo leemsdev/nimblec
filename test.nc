@@ -1,8 +1,5 @@
-print "omfg"
-
 x := 10
-y := "hello"
 
-print x
-print y
-
+if x == 10 {
+print "hello!"
+}  

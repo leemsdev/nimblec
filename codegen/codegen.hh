@@ -30,8 +30,7 @@ namespace codegen
         // the same name
         struct scope
         {
-                std::map<std::string, identifier>
-                    identifiers;
+                std::map<std::string, identifier> identifiers;
         };
 
         struct generator
@@ -67,25 +66,19 @@ namespace codegen
                         scopes.pop();
                 }
 
-                std::optional<identifier>
-                try_get_ident_in_scope(std::string name)
+                std::optional<identifier> try_get_ident_in_scope(std::string name)
                 {
-                        if (scopes.top()
-                                .identifiers.contains(name))
+                        if (scopes.top().identifiers.contains(name))
                         {
-                                return scopes.top()
-                                    .identifiers[name];
+                                return scopes.top().identifiers[name];
                         }
 
                         return std::nullopt;
                 }
 
-                void add_ident(std::string name,
-                               std::string value,
-                               identifier_type T)
+                void add_ident(std::string name, std::string value, identifier_type T)
                 {
-                        scopes.top().identifiers[name] = {
-                            name, value, T};
+                        scopes.top().identifiers[name] = {name, value, T};
                 }
         };
 } // namespace codegen

@@ -47,8 +47,48 @@ namespace ast
                         std::cout << "Program failed to compile" << std::endl;
                         for (program_err &e : errs)
                         {
-                                std::cout << "\t[line " << e.line << " (" << e.start << "," << e.end << ")] " << e.msg << std::endl;
+                                std::cout << "\t[line " << e.line << " (" << e.start << "," << e.end
+                                          << ")] " << e.msg << std::endl;
                         }
+                }
+
+                void print_expr(expressions::expr *e)
+                {
+                        switch (e->type)
+                        {
+                                case expressions::expr_type::literal:
+                                {
+                                        std::cout << expressions_container.literal_tostr(src, e);
+                                        break;
+                                }
+                                case expressions::expr_type::unary:
+                                        break;
+                                case expressions::expr_type::binary:
+                                        break;
+                                case expressions::expr_type::assign:
+                                {
+                                        std::cout << expressions_container.assign_tostr(src, e);
+                                        break;
+                                }
+                                case expressions::expr_type::branch:
+                                        std::cout << "branch" << std::endl;
+                                        break;
+                                case expressions::expr_type::comparison:
+                                        std::cout << "comparison" << std::endl;
+                                        break;
+                        }
+                }
+
+                void print_stmt(statements::stmt *s)
+                {
+                        s->print();
+                        if (s->T != statements::stmt_type::open_block_stmt &&
+                            s->T != statements::stmt_type::close_block_stmt)
+                        {
+
+                                print_expr(&s->e);
+                        }
+                        std::cout << std::endl;
                 }
 
                 void print_stmts()
@@ -57,30 +97,7 @@ namespace ast
 
                         for (statements::stmt &s : statements_container.statements)
                         {
-                                s.print();
-
-                                switch (s.e.type)
-                                {
-                                        case expressions::expr_type::literal:
-                                        {
-                                                expressions::expr_literal e = expressions_container.get_literal(s.e);
-
-                                                std::cout << "\tLiteral expr: " << src->substr_from_token(e.tok) << std::endl;
-                                                break;
-                                        }
-                                        case expressions::expr_type::unary:
-                                                break;
-                                        case expressions::expr_type::binary:
-                                                break;
-                                        case expressions::expr_type::assign:
-                                        {
-                                                expressions::expr_assign e = expressions_container.get_assign(s.e);
-
-                                                std::cout << "\tAssignment: " << src->substr_from_token(e.ident) << " = " << src->substr_from_token(e.value)
-                                                          << std::endl;
-                                                break;
-                                        }
-                                }
+                                print_stmt(&s);
                         }
                 }
 

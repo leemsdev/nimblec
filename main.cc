@@ -50,7 +50,7 @@ void run(string src)
 
         scanning::scan(&s);
 
-        // s.print_tokens();
+        s.print_tokens();
 
         log("scanned");
 

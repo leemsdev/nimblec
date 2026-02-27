@@ -2,6 +2,7 @@
 #include "../scanner/token.hh"
 #include "expr.hh"
 #include "stmt.hh"
+#include <cstdlib>
 #include <iostream>
 #include <optional>
 #include <ostream>
@@ -33,6 +34,50 @@ std::optional<token *> try_match_next(token_iter *ti, std::initializer_list<toke
         return std::nullopt;
 }
 
+// grammar (current) = if <ident> <eqeq> <literalval> <then> <stmt>
+void parse_if(program *p, token_iter *ti)
+{
+        token *tok = ti->current().value();
+        auto maybe_ident = try_match_next(ti, {tokens::token_type::ident});
+
+        if (!maybe_ident.has_value())
+        {
+                p->rep_err("invalid if syntax", tok->line, tok->start, tok->end);
+                return;
+        }
+
+        ti->advance();
+
+        token *ident = ti->current().value();
+
+        auto maybe_eqeq = try_match_next(ti, {tokens::token_type::double_eq});
+
+        if (!maybe_eqeq.has_value())
+        {
+                p->rep_err("invalid if syntax", tok->line, tok->start, tok->end);
+                return;
+        }
+
+        ti->advance();
+
+        token *eqeq = ti->current().value();
+
+        auto maybe_literal = try_match_next(ti, {tokens::token_type::number});
+
+        if (!maybe_literal.has_value())
+        {
+                p->rep_err("invalid if syntax", tok->line, tok->start, tok->end);
+                return;
+        }
+
+        ti->advance();
+
+        token *literal = ti->current().value();
+
+        p->add_stmt(statements::stmt_type::if_stmt,
+                    p->expressions_container.register_comparison(ident, literal));
+}
+
 void parse_stmt(program *p, token_iter *ti)
 {
         token *tok = ti->current().value();
@@ -43,17 +88,19 @@ void parse_stmt(program *p, token_iter *ti)
 
                 if (!maybe_next.has_value())
                 {
-                        p->rep_err("Print statement must be following by a string or identifier value", tok->line, tok->start, tok->end);
+                        p->rep_err(
+                            "Print statement must be following by a string or identifier value",
+                            tok->line, tok->start, tok->end);
                         return;
                 }
 
                 // create an expression
-                auto e = p->expressions_container.register_literal(expressions::expr_literal_type::string, maybe_next.value(), "literal expr");
+                auto e = p->expressions_container.register_literal(
+                    expressions::expr_literal_type::string, maybe_next.value());
 
                 p->add_stmt(statements::stmt_type::builtin_print, e);
 
                 // advance past next token cos we already dealt w it
-                ti->advance();
                 ti->advance();
         }
 
@@ -83,15 +130,17 @@ void parse_stmt(program *p, token_iter *ti)
                 p->add_stmt(statements::stmt_type::assignment, e);
 
                 ti->advance();
-                ti->advance();
         }
+
+        ti->advance();
 }
 
 void parse_token(program *p, token_iter *ti)
 {
         token *tok = ti->current().value();
 
-        std::cout << "Current token: " << tokens::type_to_str(tok->type) << " value: " << p->src->substr_from_token(tok) << std::endl;
+        std::cout << "Current token: " << tokens::type_to_str(tok->type)
+                  << " value: " << p->src->substr(tok->start, tok->end) << std::endl;
 
         switch (tok->type)
         {
@@ -99,7 +148,6 @@ void parse_token(program *p, token_iter *ti)
                         parse_stmt(p, ti);
                         break;
                 case tokens::token_type::string:
-                        p->rep_err("Invalid string literal", tok->line, tok->start, tok->end);
                         break;
                 case tokens::token_type::ident:
                         parse_stmt(p, ti);
@@ -108,7 +156,6 @@ void parse_token(program *p, token_iter *ti)
                         p->rep_err("Invalid syntax", tok->line, tok->start, tok->end);
                         break;
                 case tokens::token_type::newline:
-                        ti->advance();
                         break;
                 case tokens::token_type::eof:
                         break;
@@ -118,7 +165,26 @@ void parse_token(program *p, token_iter *ti)
                 case tokens::token_type::colon_eq:
                         p->rep_err("Invalid syntax ", tok->line, tok->start, tok->end);
                         break;
+                case tokens::token_type::keyword_then:
+                        p->rep_err("Invalid then ", tok->line, tok->start, tok->end);
+                        break;
+                case tokens::token_type::keyword_if:
+                        parse_if(p, ti);
+                        break;
+                case tokens::token_type::double_eq:
+                        p->rep_err("Invalid == ", tok->line, tok->start, tok->end);
+                        break;
+                case tokens::token_type::left_brace:
+                        p->add_stmt(statements::stmt_type::open_block_stmt, {});
+                        break;
+                case tokens::token_type::right_brace:
+                        p->add_stmt(statements::stmt_type::close_block_stmt, {});
+                        break;
+                case tokens::token_type::eq:
+                        p->rep_err("invalid = syntax", tok->line, tok->start, tok->end);
+                        break;
         }
+        ti->advance();
 }
 
 void ast::parse_tree(program *p, token_iter *ti)
@@ -131,6 +197,6 @@ void ast::parse_tree(program *p, token_iter *ti)
         if (!p->ok())
         {
                 p->print_errs();
-                exit(-1);
+                exit(1);
         }
 }
